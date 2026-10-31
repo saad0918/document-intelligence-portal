@@ -8,7 +8,9 @@ import pytesseract
 import chromadb
 
 from PIL import Image
-from sentence_transformers import SentenceTransformer
+
+from sklearn.feature_extraction.text import HashingVectorizer
+
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 # --------------------------------------------------
@@ -47,13 +49,14 @@ collection = chroma_client.get_or_create_collection(
     name="documents"
 )
 
-
 # --------------------------------------------------
-# 4. EMBEDDING MODEL
+# 4. LIGHTWEIGHT TEXT VECTORIZER
 # --------------------------------------------------
 
-embedding_model = SentenceTransformer(
-    "sentence-transformers/all-MiniLM-L6-v2"
+vectorizer = HashingVectorizer(
+    n_features=384,
+    alternate_sign=False,
+    norm="l2"
 )
 
 
@@ -218,11 +221,7 @@ def process_pdf(file_path: str) -> dict:
         }
 
     # Generate embeddings before replacing old records.
-    embeddings = embedding_model.encode(
-        chunks,
-        show_progress_bar=True,
-        normalize_embeddings=True
-    ).tolist()
+    embeddings = vectorizer.transform(chunks).toarray().tolist()
 
     # Remove obsolete records for this document.
     remove_document_chunks(document_name)
@@ -272,10 +271,7 @@ def search_documents(query: str, top_k: int = 5) -> dict:
             "results": []
         }
 
-    query_embedding = embedding_model.encode(
-        [query],
-        normalize_embeddings=True
-    ).tolist()
+    query_embedding = vectorizer.transform([query]).toarray().tolist()
 
     results = collection.query(
         query_embeddings=query_embedding,
