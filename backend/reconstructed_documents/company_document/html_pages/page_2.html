@@ -1,0 +1,231 @@
+
+    <!DOCTYPE html>
+    <html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0"
+        >
+
+        <title>company_document - Complete Document</title>
+
+        <style>
+
+            * {
+                box-sizing: border-box;
+            }
+
+            html {
+                scroll-behavior: smooth;
+                scroll-padding-top: 20px;
+            }
+
+            body {
+                margin: 0;
+                padding: 24px;
+                background: #e9edf3;
+                font-family: Arial, sans-serif;
+            }
+
+            .document-container {
+                width: 100%;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 24px;
+            }
+
+            .document-page {
+                width: 100%;
+                display: flex;
+                justify-content: center;
+                scroll-margin-top: 20px;
+            }
+
+            .page {
+                position: relative;
+                flex-shrink: 0;
+                background: white;
+                overflow: hidden;
+                box-shadow: 0 4px 18px rgba(0, 0, 0, 0.14);
+            }
+
+            .page-background {
+                position: absolute;
+                inset: 0;
+                width: 100%;
+                height: 100%;
+                object-fit: fill;
+                z-index: 1;
+                pointer-events: none;
+            }
+
+            .text-layer {
+                position: absolute;
+                z-index: 2;
+                color: transparent;
+                background: transparent;
+                font-family: Arial, sans-serif;
+                font-weight: normal;
+                line-height: 1.12;
+                white-space: pre-wrap;
+                overflow-wrap: break-word;
+                cursor: text;
+                user-select: text;
+                -webkit-user-select: text;
+            }
+
+            .text-layer::selection {
+                color: transparent;
+                background: rgba(0, 120, 255, 0.35);
+            }
+
+            @media (max-width: 700px) {
+                body {
+                    padding: 12px;
+                }
+
+                .document-container {
+                    align-items: flex-start;
+                }
+
+                .document-page {
+                    justify-content: flex-start;
+                    overflow-x: auto;
+                }
+            }
+
+            @media print {
+                body {
+                    padding: 0;
+                    background: white;
+                }
+
+                .document-container {
+                    gap: 0;
+                }
+
+                .page {
+                    box-shadow: none;
+                }
+
+                .document-page {
+                    page-break-after: always;
+                }
+            }
+
+        </style>
+    </head>
+
+    <body>
+
+        <main class="document-container">
+
+            
+    <section
+        class="document-page"
+        id="page-2"
+        data-page="2"
+    >
+        <div
+            class="page"
+            style="
+                width: 595.3200073242188px;
+                height: 841.9199829101562px;
+            "
+        >
+            <img
+                class="page-background"
+                src="../pages/page_2.png"
+                alt="Original PDF page 2"
+            >
+
+            
+            <div
+                class="text-layer"
+                data-text="2 "
+                style="
+                    left: 294.8399963378906px;
+                    top: 783.8015747070312px;
+                    width: 8.2867431640625px;
+                    height: 13.59539794921875px;
+                    font-size: 9.960000038146973px;
+                "
+            >2 </div>
+            
+            <div
+                class="text-layer"
+                data-text="A. 
+Repeal and saving ................................................................................................. 93 "
+                style="
+                    left: 83.04000091552734px;
+                    top: 70.7817611694336px;
+                    width: 442.2955093383789px;
+                    height: 15.809280395507812px;
+                    font-size: 11.039999961853027px;
+                "
+            >A. <br>Repeal and saving ................................................................................................. 93 </div>
+            
+            <div
+                class="text-layer"
+                data-text="B. 
+Application of other laws not barred .................................................................... 93 "
+                style="
+                    left: 83.051025390625px;
+                    top: 94.7827377319336px;
+                    width: 442.28448486328125px;
+                    height: 15.809280395507812px;
+                    font-size: 11.039999961853027px;
+                "
+            >B. <br>Application of other laws not barred .................................................................... 93 </div>
+            
+            <div
+                class="text-layer"
+                data-text="C. 
+Interpretations ....................................................................................................... 93 "
+                style="
+                    left: 83.051025390625px;
+                    top: 118.7837142944336px;
+                    width: 442.28448486328125px;
+                    height: 15.809288024902344px;
+                    font-size: 11.039999961853027px;
+                "
+            >C. <br>Interpretations ....................................................................................................... 93 </div>
+            
+            <div
+                class="text-layer"
+                data-text="Annex I ..................................................................................................................... 95 "
+                style="
+                    left: 72.01101684570312px;
+                    top: 142.48797607421875px;
+                    width: 453.5409240722656px;
+                    height: 17.183990478515625px;
+                    font-size: 11.679999987284342px;
+                "
+            >Annex I ..................................................................................................................... 95 </div>
+            
+            <div
+                class="text-layer"
+                data-text="Annex II .................................................................................................................. 113 "
+                style="
+                    left: 72.0px;
+                    top: 163.24798583984375px;
+                    width: 453.55194091796875px;
+                    height: 17.183990478515625px;
+                    font-size: 11.679999987284342px;
+                "
+            >Annex II .................................................................................................................. 113 </div>
+            
+        </div>
+    </section>
+    
+
+        </main>
+
+    </body>
+
+    </html>
+    

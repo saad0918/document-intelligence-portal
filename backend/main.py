@@ -1,5 +1,6 @@
 import os
 import shutil
+import json
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -60,7 +61,31 @@ app.mount(
     name="documents",
 )
 
+# Serve reconstructed page previews and OCR data.
+RECONSTRUCTED_DIR = os.path.join(
+    BASE_DIR,
+    "reconstructed_documents",
+)
 
+app.mount(
+    "/reconstructed",
+    StaticFiles(directory=RECONSTRUCTED_DIR),
+    name="reconstructed",
+)
+
+# Automatically index the supplied PDFs when the backend starts.
+@app.on_event("startup")
+def index_existing_documents():
+    for filename in ["company_document.pdf", "tata_tender.pdf"]:
+        file_path = os.path.join(DOCUMENTS_DIR, filename)
+
+        if os.path.isfile(file_path):
+            try:
+                result = process_pdf(file_path)
+                print(f"Indexed {filename}: {result}")
+            except Exception as error:
+                print(f"Failed to index {filename}: {error}")
+            
 # --------------------------------------------------
 # 4. Home endpoint
 # --------------------------------------------------
@@ -82,7 +107,63 @@ def health():
         "status": "healthy"
     }
 
+# --------------------------------------------------
+# 6. Retrieve OCR data for a specific PDF page
+# --------------------------------------------------
 
+@app.get("/page-data/{filename}/{page_number}")
+def get_page_data(filename: str, page_number: int):
+
+    safe_filename = os.path.basename(filename)
+
+    if not safe_filename.lower().endswith(".pdf"):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid PDF filename.",
+        )
+
+    if page_number < 1:
+        raise HTTPException(
+            status_code=400,
+            detail="Page number must be at least 1.",
+        )
+
+    document_name = os.path.splitext(safe_filename)[0]
+
+    json_path = os.path.join(
+        BASE_DIR,
+        "reconstructed_documents",
+        document_name,
+        "document_data.json",
+    )
+
+    if not os.path.isfile(json_path):
+        raise HTTPException(
+            status_code=404,
+            detail="Reconstructed document data not found.",
+        )
+
+    try:
+        with open(json_path, "r", encoding="utf-8") as file:
+            pages = json.load(file)
+
+        for page in pages:
+            if page.get("page_number") == page_number:
+                return page
+
+        raise HTTPException(
+            status_code=404,
+            detail="Page not found.",
+        )
+
+    except HTTPException:
+        raise
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not read page data: {str(error)}",
+        ) from error
 # --------------------------------------------------
 # 6. Upload and index a PDF document
 # --------------------------------------------------

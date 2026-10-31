@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Search,
   FileText,
@@ -8,11 +8,32 @@ import {
   Database,
   Sparkles,
   X,
+  BookOpen,
 } from "lucide-react";
 import "./App.css";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+
+// These are the two source PDFs supplied for this portal.
+// The viewer renders the original PDF files directly so their layout is preserved.
+const SOURCE_DOCUMENTS = [
+  {
+    name: "Tata Chemicals – Tender for Architectural Design",
+    filename: "tata_tender.pdf",
+    pages: 29,
+    description:
+      "Original tender document covering architectural design and staff housing development.",
+  },
+  {
+    name: "RBI – Commercial Banks: Financial Statements",
+    filename: "company_document.pdf",
+    pages: 120,
+    description:
+      "Original RBI directions covering financial statement presentation and disclosures.",
+  },
+];
+
 function cleanResultText(text) {
   const textarea = document.createElement("textarea");
   textarea.innerHTML = text ?? "";
@@ -23,6 +44,25 @@ function cleanResultText(text) {
     .trim();
 }
 
+function getHighlightedBlocks(pageData, searchQuery) {
+  if (!pageData?.blocks || !searchQuery?.trim()) {
+    return [];
+  }
+
+  const terms = searchQuery
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((term) => term.length > 2);
+
+  if (terms.length === 0) return [];
+
+  return pageData.blocks.filter((block) => {
+    const blockText = block.text.toLowerCase();
+
+    return terms.some((term) => blockText.includes(term));
+  });
+}
+
 function App() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
@@ -31,7 +71,59 @@ function App() {
   const [error, setError] = useState("");
   const [searched, setSearched] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState(null);
+  const [pageData, setPageData] = useState(null);
+  const [pageLoading, setPageLoading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState("");
+
+  const documentUrl = (filename, page = 1) =>
+    `${API_BASE_URL}/documents/${encodeURIComponent(filename)}#page=${page}`;
+  const openDocument = (
+  filename,
+  page = 1,
+  displayName = filename,
+  searchQuery = ""
+) => {
+  setSelectedDocument({
+    name: displayName,
+    filename,
+    page,
+    url: documentUrl(filename, page),
+    searchQuery,
+  });
+};
+useEffect(() => {
+  if (!selectedDocument) {
+    setPageData(null);
+    return;
+  }
+
+  const fetchPageData = async () => {
+    setPageLoading(true);
+    setPageData(null);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/page-data/${encodeURIComponent(
+          selectedDocument.filename
+        )}/${selectedDocument.page}`
+      );
+
+      if (!response.ok) {
+        throw new Error("Unable to load page data.");
+      }
+
+      const data = await response.json();
+      setPageData(data);
+    } catch (err) {
+      console.error("Page data error:", err);
+      setPageData(null);
+    } finally {
+      setPageLoading(false);
+    }
+  };
+
+  fetchPageData();
+}, [selectedDocument]);
 
   const searchDocuments = async (event) => {
     event.preventDefault();
@@ -72,7 +164,6 @@ function App() {
 
   const uploadDocument = async (event) => {
     const file = event.target.files?.[0];
-
     if (!file) return;
 
     if (!file.name.toLowerCase().endsWith(".pdf")) {
@@ -103,22 +194,12 @@ function App() {
       setUploadMessage(
         `${data.document} processed successfully. ${data.chunks_created} text chunks indexed.`
       );
-
-      setSelectedDocument(null);
     } catch (err) {
       setError(err.message || "Unable to upload the PDF.");
     } finally {
       setUploading(false);
       event.target.value = "";
     }
-  };
-
-  const openDocument = (documentName, page) => {
-    setSelectedDocument({
-      name: documentName,
-      page,
-      url: `${API_BASE_URL}/documents/${encodeURIComponent(documentName)}#page=${page}`,
-    });
   };
 
   return (
@@ -135,9 +216,8 @@ function App() {
         </a>
 
         <div className="topbar-right">
-          <span className="status-dot"></span>
+          <span className="status-dot" />
           <span>AI Search Portal</span>
-
           <label className="upload-button">
             {uploading ? (
               <LoaderCircle size={17} className="spin" />
@@ -170,13 +250,12 @@ function App() {
           </h1>
 
           <p className="hero-description">
-            Search across your documents using natural language. Find relevant
-            information and jump directly to the original PDF page.
+            Search across both source documents, open the original PDF, and
+            navigate directly to the page containing a relevant passage.
           </p>
 
           <form className="search-form" onSubmit={searchDocuments}>
             <Search size={22} className="search-icon" />
-
             <input
               type="text"
               value={query}
@@ -184,7 +263,6 @@ function App() {
               placeholder="Try: What is the tender submission deadline?"
               aria-label="Search documents"
             />
-
             <button type="submit" disabled={loading}>
               {loading ? (
                 <LoaderCircle size={18} className="spin" />
@@ -197,7 +275,7 @@ function App() {
 
           <div className="search-hint">
             <span>Try searching for:</span>
-            {["tender deadline", "eligibility criteria", "payment terms"].map(
+            {["tender deadline", "architectural design", "financial statements"].map(
               (suggestion) => (
                 <button
                   type="button"
@@ -212,7 +290,11 @@ function App() {
         </section>
 
         {(error || uploadMessage) && (
-          <div className={error ? "notice error-notice" : "notice success-notice"}>
+          <div
+            className={
+              error ? "notice error-notice" : "notice success-notice"
+            }
+          >
             <span>{error || uploadMessage}</span>
             <button
               type="button"
@@ -227,6 +309,60 @@ function App() {
           </div>
         )}
 
+        <section className="documents-section">
+          <div className="section-heading">
+            <div>
+              <span className="section-kicker">SOURCE LIBRARY</span>
+              <h2>Original documents</h2>
+              <p className="section-description">
+                Open either supplied PDF in the portal. The source PDF is
+                rendered directly, preserving its original pages and layout.
+              </p>
+            </div>
+            <span className="library-count">2 source PDFs</span>
+          </div>
+
+          <div className="documents-grid">
+            {SOURCE_DOCUMENTS.map((document) => (
+              <article className="document-card" key={document.filename}>
+                <div className="document-card-icon">
+                  <FileText size={24} />
+                </div>
+                <div className="document-card-content">
+                  <span className="document-type">ORIGINAL PDF</span>
+                  <h3>{document.name}</h3>
+                  <p>{document.description}</p>
+                  <span className="page-count">{document.pages} pages</span>
+                </div>
+                <div className="document-card-actions">
+                  <button
+                    type="button"
+                    className="primary-document-button"
+                    onClick={() =>
+                      openDocument(
+                        document.filename,
+                        1,
+                        document.name
+                      )
+                    }
+                  >
+                    <BookOpen size={16} />
+                    View original PDF
+                  </button>
+                  <a
+                    className="text-link"
+                    href={documentUrl(document.filename)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Open in new tab <ExternalLink size={14} />
+                  </a>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
         <section className="results-section">
           <div className="section-heading">
             <div>
@@ -236,10 +372,9 @@ function App() {
                   ? "Searching documents..."
                   : searched
                     ? "Search results"
-                    : "Explore your documents"}
+                    : "Search across your documents"}
               </h2>
             </div>
-
             {searched && !loading && (
               <span className="result-count">
                 {results.length} {results.length === 1 ? "result" : "results"}
@@ -269,34 +404,44 @@ function App() {
                     <span className="file-icon">
                       <FileText size={20} />
                     </span>
-
                     <div className="result-document">
                       <strong>{result.document}</strong>
                       <span>Page {result.page}</span>
                     </div>
-
                     <button
                       className="view-button"
                       type="button"
                       onClick={() =>
-                        openDocument(result.document, result.page)
+                        openDocument(
+                          result.document,
+                          result.page,
+                          result.document,
+                          query
+                        )
                       }
                     >
-                      View PDF <ExternalLink size={15} />
+                      View page <ExternalLink size={15} />
                     </button>
                   </div>
 
-                  <p className="result-text">{cleanResultText(result.text)}</p>
+                  <p className="result-text">
+                    {cleanResultText(result.text)}
+                  </p>
 
                   <div className="result-card-footer">
                     <span>
                       <Sparkles size={14} />
-                      Semantic search match
+                      Retrieved passage
                     </span>
                     <button
                       type="button"
                       onClick={() =>
-                        openDocument(result.document, result.page)
+                        openDocument(
+                          result.document,
+                          result.page,
+                          result.document,
+                          query
+                        )
                       }
                     >
                       Open original document →
@@ -306,50 +451,14 @@ function App() {
               ))}
             </div>
           ) : (
-            <div className="welcome-grid">
-              <article className="welcome-card">
-                <span className="welcome-icon">
-                  <Search size={22} />
-                </span>
-                <h3>Search naturally</h3>
-                <p>
-                  Ask a question or enter keywords to find relevant passages
-                  across indexed PDFs.
-                </p>
-              </article>
-
-              <article className="welcome-card">
-                <span className="welcome-icon">
-                  <Database size={22} />
-                </span>
-                <h3>Vector-powered retrieval</h3>
-                <p>
-                  Sentence embeddings and ChromaDB help retrieve semantically
-                  relevant text, not just exact keyword matches.
-                </p>
-              </article>
-
-              <article className="welcome-card">
-                <span className="welcome-icon">
-                  <FileText size={22} />
-                </span>
-                <h3>Original PDFs preserved</h3>
-                <p>
-                  Open the source PDF and navigate to the page containing a
-                  relevant passage.
-                </p>
-              </article>
+            <div className="empty-state search-prompt">
+              <Search size={30} />
+              <p>Enter a query above to find information in both PDFs.</p>
             </div>
           )}
         </section>
-
-        <footer className="footer">
-          <span>DocuMind AI · Document Intelligence Portal</span>
-          <span>FastAPI · ChromaDB · Sentence Transformers · React</span>
-        </footer>
-      </main>
-
-      {selectedDocument && (
+        </main>
+              {selectedDocument && (
         <div className="pdf-overlay">
           <section className="pdf-modal">
             <div className="pdf-toolbar">
@@ -382,11 +491,23 @@ function App() {
               </div>
             </div>
 
-            <iframe
-              title={`PDF viewer: ${selectedDocument.name}`}
-              src={selectedDocument.url}
-              className="pdf-frame"
-            />
+            <div className="page-preview-container">
+              {pageLoading ? (
+                <p>Loading page...</p>
+              ) : pageData ? (
+                <iframe
+                  key={`${selectedDocument.filename}-${selectedDocument.page}`}
+                  src={`${API_BASE_URL}/reconstructed/${selectedDocument.filename.replace(
+                    /\.pdf$/i,
+                    ""
+                  )}/html_pages/index.html#page-${selectedDocument.page}`}
+                  title={`${selectedDocument.name} - Page ${selectedDocument.page}`}
+                  className="html-document-viewer"
+                />
+              ) : (
+                <p>Unable to load reconstructed page.</p>
+              )}
+            </div>
           </section>
         </div>
       )}
